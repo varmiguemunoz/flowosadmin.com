@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-06T00:00:00.000Z",
+  "title": "Design System: TaoFlow Admin",
+  "extensions": {
+    "colorMeta": {
+      "signal": {
+        "role": "primary",
+        "displayName": "Flow Teal",
+        "canonical": "#2dd4bf",
+        "tonalRamp": ["#04121a", "#0b3a35", "#0f766e", "#14b8a6", "#2dd4bf", "#5eead4", "#99f6e4", "#ccfbf1"]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Slate Canvas",
+        "canonical": "#0b0f14",
+        "tonalRamp": ["#0b0f14", "#111720", "#161d28", "#1f2937", "#2b3644", "#5f6b78", "#9aa7b4", "#e6edf3"]
+      },
+      "danger": {
+        "role": "status",
+        "displayName": "Danger Coral",
+        "canonical": "#f87171",
+        "tonalRamp": ["#450a0a", "#7f1d1d", "#b91c1c", "#ef4444", "#f87171", "#fca5a5", "#fecaca", "#fee2e2"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Screen headings only." },
+      "label": { "displayName": "Mono Microlabel", "purpose": "Short field keys and status ticks." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "ease-out-fast", "value": "150ms ease-out", "purpose": "Default state transitions (buttons, field focus, links)." },
+      { "name": "spin", "value": "1.1s linear infinite", "purpose": "Loading spinner and signal pulse." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Signal Button",
+      "kind": "button",
+      "refersTo": "button-signal",
+      "description": "Primary action; flow-teal, used once per form.",
+      "html": "<button class=\"ds-btn-signal\">Entrar</button>",
+      "css": ".ds-btn-signal { display:inline-flex; align-items:center; justify-content:center; height:44px; width:100%; padding:0 16px; border:none; border-radius:8px; background:#2dd4bf; color:#04121a; font-size:14px; font-weight:500; transition:background 150ms ease-out; } .ds-btn-signal:hover { background:#14b8a6; } .ds-btn-signal:focus-visible { outline:none; box-shadow:0 0 0 2px #0b0f14, 0 0 0 4px rgba(45,212,191,0.7); } .ds-btn-signal:disabled { opacity:0.5; cursor:not-allowed; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action; hairline border, used for Continue with Google.",
+      "html": "<button class=\"ds-btn-ghost\">Continuar con Google</button>",
+      "css": ".ds-btn-ghost { display:inline-flex; align-items:center; justify-content:center; gap:8px; height:44px; width:100%; padding:0 16px; border:1px solid #2b3644; border-radius:8px; background:transparent; color:#e6edf3; font-size:14px; font-weight:500; transition:border-color 150ms ease-out; } .ds-btn-ghost:hover { border-color:rgba(45,212,191,0.6); } .ds-btn-ghost:focus-visible { outline:none; box-shadow:0 0 0 2px #0b0f14, 0 0 0 4px rgba(45,212,191,0.7); }"
+    },
+    {
+      "name": "Underline Field",
+      "kind": "input",
+      "refersTo": "input-underline",
+      "description": "Text field drawn as a canvas underline with a mono microlabel.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-key\">Correo</span><input class=\"ds-field-input\" placeholder=\"tucorreo@taoflow.com\" /></label>",
+      "css": ".ds-field { display:flex; flex-direction:column; gap:6px; } .ds-field-key { font-family:ui-monospace,monospace; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#7c8a99; } .ds-field-input { height:40px; background:transparent; border:none; border-bottom:1px solid #2b3644; color:#e6edf3; font-size:15px; transition:border-color 150ms ease-out; } .ds-field-input::placeholder { color:#7c8a99; } .ds-field-input:focus { outline:none; border-bottom-color:#2dd4bf; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Operator's Control Desk",
+    "overview": "TaoFlow Admin reads like instrumentation for people who run a system. A deep slate console where structure is drawn with hairline rules and negative space, and a single flow-teal signal marks what is live the way a control panel marks an armed channel. Restrained by intent: the visitor came to operate, not to be persuaded. Depth is tonal layering plus hairlines, never drop shadows.",
+    "keyCharacteristics": [
+      "Deep slate canvas, dark by scene (a desk-operated internal console)",
+      "Hairline structure and generous negative space over boxes and cards",
+      "One flow-teal signal accent reserved for the live/active state",
+      "Workhorse sans for UI, mono for labels and status ticks"
+    ],
+    "rules": [
+      { "name": "The Armed-Channel Rule", "body": "Flow Teal only marks what is live or actionable; never decoration, never a whole region. Its rarity is what makes it read as a signal.", "section": "colors" },
+      { "name": "The Short-Label Rule", "body": "Uppercase mono is for short labels and field keys only; long all-caps passages are banned.", "section": "typography" },
+      { "name": "The Drawn-Structure Rule", "body": "Structure is drawn with 1px hairlines and space, not cards or shadows.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do reserve Flow Teal for live/actionable elements",
+      "Do draw structure with hairlines and space; layer tone for depth",
+      "Do use mono microlabels for short field keys and status only",
+      "Do theme browser surfaces (selection, caret, placeholder, scrollbars) from the palette",
+      "Do keep AA contrast: all ink tones clear 4.5:1 on every slate surface"
+    ],
+    "donts": [
+      "Don't center the sign-in in a floating card on a gradient",
+      "Don't put a kicker/eyebrow label above a heading",
+      "Don't use drop shadows or ghost-card 1px-border-under-soft-shadow",
+      "Don't use a colored left-border bar on alerts, or emoji in place of drawn icons",
+      "Don't let Flow Teal spread into decoration or cover whole regions"
+    ]
+  }
+}

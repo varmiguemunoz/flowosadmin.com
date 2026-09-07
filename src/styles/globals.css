@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+/*
+ * TaoFlow Admin — operator control desk.
+ * Deep slate canvas, hairline structure, a single flow-teal signal accent,
+ * workhorse sans for UI + tabular mono for labels/status. Dark by scene: an
+ * internal console operated at a desk, not a bright marketing surface.
+ */
+
+@theme {
+  /* Canvas + surfaces (near-black blue-slate) */
+  --color-canvas: #0b0f14;
+  --color-surface: #111720;
+  --color-surface-raised: #161d28;
+
+  /* Hairline rules */
+  --color-line: #1f2937;
+  --color-line-strong: #2b3644;
+
+  /* Ink */
+  --color-ink: #e6edf3;
+  --color-ink-muted: #9aa7b4;
+  /* Bumped from #5f6b78 to clear WCAG AA 4.5:1 on the surface tone. */
+  --color-ink-faint: #7c8a99;
+
+  /* Flow-teal signal accent (the "armed channel" state) */
+  --color-signal: #2dd4bf;
+  --color-signal-strong: #14b8a6;
+  --color-signal-dim: #0f766e;
+  --color-on-signal: #04121a;
+
+  /* Status */
+  --color-danger: #f87171;
+  --color-danger-dim: #7f1d1d;
+  --color-warning: #fbbf24;
+
+  /* Type */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+
+  /* Radius: small controls only; the world is drawn with rules, not boxes */
+  --radius-control: 8px;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Theme the browser surfaces the design system usually forgets. */
+  ::selection {
+    background: color-mix(in oklab, var(--color-signal) 30%, transparent);
+    color: var(--color-ink);
+  }
+
+  ::placeholder {
+    color: var(--color-ink-faint);
+  }
+
+  :focus-visible {
+    outline: none;
+  }
+
+  /* Tabular numerals everywhere numbers carry meaning. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Mono microlabel — field keys, status ticks. */
+  .microlabel {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-ink-faint);
+  }
+
+  /* Custom scrollbars tuned to the slate world. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--color-line-strong);
+    border-radius: 999px;
+    border: 3px solid var(--color-canvas);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}

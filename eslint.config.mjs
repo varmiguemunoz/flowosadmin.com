@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored impeccable skill tooling — not our source to lint.
+    "**/skills/impeccable/**",
+    ".agents/**",
   ]),
 ]);
 
