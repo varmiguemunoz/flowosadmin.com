@@ -23,11 +23,18 @@ export async function bffFetch<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
+  // FormData must set its own Content-Type so the multipart boundary survives.
+  // Forcing application/json here would corrupt file uploads.
+  const isFormData =
+    typeof FormData !== "undefined" && init?.body instanceof FormData;
+
   const res = await fetch(`${BFF_BASE}${path}`, {
     ...init,
     headers: {
       Accept: "application/json",
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...(init?.body && !isFormData
+        ? { "Content-Type": "application/json" }
+        : {}),
       ...init?.headers,
     },
   });

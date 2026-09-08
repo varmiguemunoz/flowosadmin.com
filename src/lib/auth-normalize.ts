@@ -9,7 +9,7 @@ export const DEFAULT_ACCESS_TOKEN_TTL_MS = 15 * 60 * 1000; // 15 minutes
 /** Refresh a little before actual expiry to avoid edge races. */
 export const REFRESH_SKEW_MS = 30 * 1000;
 
-/** Normalized auth result shared across login / google / refresh. */
+/** Normalized auth result shared across login and refresh. */
 export interface AuthResult {
   user: {
     id: string;
@@ -32,10 +32,19 @@ export interface AuthResult {
  * @param now injectable clock for deterministic tests (defaults to Date.now).
  */
 export function normalizeAuthPayload(
-  data: Record<string, unknown> | null | undefined,
+  payload: Record<string, unknown> | null | undefined,
   now: number = Date.now(),
 ): AuthResult | null {
-  if (!data) return null;
+  if (!payload) return null;
+
+  // The API wraps every response in `{ status, message, data }`. Unwrap it when
+  // present, but still accept a bare payload so the helper stays usable if a
+  // caller hands us an already-unwrapped object.
+  const envelope = payload.data;
+  const data =
+    envelope && typeof envelope === "object" && !Array.isArray(envelope)
+      ? (envelope as Record<string, unknown>)
+      : payload;
 
   const accessToken =
     (data.accessToken as string) ??
@@ -48,6 +57,7 @@ export function normalizeAuthPayload(
   const id =
     (rawUser.id as string) ??
     (rawUser.userId as string) ??
+    (rawUser.user_id as string) ??
     (rawUser.sub as string) ??
     (data.userId as string) ??
     "";
@@ -68,7 +78,11 @@ export function normalizeAuthPayload(
     user: {
       id,
       email,
-      name: (rawUser.name as string) ?? (rawUser.fullName as string) ?? null,
+      name:
+        (rawUser.name as string) ??
+        (rawUser.fullName as string) ??
+        (rawUser.full_name as string) ??
+        null,
       image: (rawUser.image as string) ?? (rawUser.avatarUrl as string) ?? null,
       role: (rawUser.role as string) ?? null,
     },

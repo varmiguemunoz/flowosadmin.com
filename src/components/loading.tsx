@@ -1,5 +1,5 @@
 export function FullscreenLoader({
-  label = "Cargando",
+  label = "Loading",
 }: {
   label?: string;
 }) {

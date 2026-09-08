@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "TaoFlow Admin",
-  description: "Consola de administración de TaoFlow.",
+  description: "TaoFlow admin console.",
   robots: { index: false, follow: false },
 };
 

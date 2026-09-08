@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Acceso restringido · TaoFlow Admin",
+  title: "Access restricted · TaoFlow Admin",
   robots: { index: false, follow: false },
 };
 
@@ -16,16 +16,16 @@ export default function ForbiddenPage() {
         </span>
 
         <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-          Acceso restringido
+          Access restricted
         </h1>
 
         <p className="max-w-sm text-sm leading-relaxed text-ink-muted">
-          Esta consola solo está disponible desde ubicaciones autorizadas. Tu
-          conexión no forma parte de la lista permitida.
+          This console is only available from authorized locations. Your
+          connection is not on the allowlist.
         </p>
 
         <div className="mt-2 flex items-center gap-2 font-mono text-xs tracking-wide text-ink-faint">
-          <span>TaoFlow Admin · Consola privada · 403</span>
+          <span>TaoFlow Admin · Private console · 403</span>
         </div>
       </div>
     </main>

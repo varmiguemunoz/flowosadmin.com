@@ -1,17 +1,22 @@
 import NextAuth, { CredentialsSignin } from "next-auth";
 import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import Google from "next-auth/providers/google";
 
-import {
-  loginWithCredentials,
-  exchangeGoogleToken,
-  refreshAccessToken,
-} from "@/lib/auth-api";
+import { loginWithCredentials, refreshAccessToken } from "@/lib/auth-api";
 import { isAccessTokenValid } from "@/lib/auth-normalize";
 
-class InvalidCredentials extends CredentialsSignin {
-  code = "invalid_credentials";
+/**
+ * Auth.js surfaces `CredentialsSignin.code` to the client, so we carry the
+ * API's own message through it. That makes a routing or availability failure
+ * distinguishable from a genuinely wrong password.
+ */
+class ApiSignInError extends CredentialsSignin {
+  code: string;
+
+  constructor(message: string) {
+    super(message);
+    this.code = message;
+  }
 }
 
 export const authConfig: NextAuthConfig = {
@@ -34,13 +39,16 @@ export const authConfig: NextAuthConfig = {
         const password =
           typeof credentials?.password === "string" ? credentials.password : "";
         if (!email || !password) {
-          throw new InvalidCredentials();
+          throw new ApiSignInError("Enter your email and password.");
         }
 
-        const result = await loginWithCredentials(email, password);
-        if (!result) {
-          throw new InvalidCredentials();
+        const response = await loginWithCredentials(email, password);
+
+        if (!response.ok) {
+          throw new ApiSignInError(response.message);
         }
+
+        const { result } = response;
 
         return {
           id: result.user.id,
@@ -54,39 +62,8 @@ export const authConfig: NextAuthConfig = {
         };
       },
     }),
-    Google({
-      // Ask for an id_token we can exchange server-side with our API.
-      authorization: {
-        params: { prompt: "select_account", access_type: "offline" },
-      },
-      allowDangerousEmailAccountLinking: true,
-    }),
   ],
   callbacks: {
-    /**
-     * For Google sign-in, exchange the Google identity for our API's tokens.
-     * If the exchange fails, deny the sign-in.
-     */
-    async signIn({ account, profile, user }) {
-      if (account?.provider !== "google") return true;
-
-      const exchanged = await exchangeGoogleToken({
-        idToken: account.id_token,
-        accessToken: account.access_token,
-        email: profile?.email ?? user?.email ?? null,
-      });
-      if (!exchanged) return false;
-
-      // Stash the exchanged tokens on `user` so the jwt callback can persist
-      // them (account/profile are only available on the first call).
-      user.id = exchanged.user.id;
-      user.role = exchanged.user.role;
-      user.accessToken = exchanged.accessToken;
-      user.refreshToken = exchanged.refreshToken;
-      user.accessTokenExpires = exchanged.accessTokenExpires;
-      return true;
-    },
-
     async jwt({ token, user }) {
       // Initial sign-in: seed the token from the authorized user.
       if (user) {

@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { LoginForm } from "@/components/auth/loginForm";
 
 export const metadata: Metadata = {
-  title: "Iniciar sesión · TaoFlow Admin",
+  title: "Sign in · TaoFlow Admin",
 };
 
 export default function LoginPage() {

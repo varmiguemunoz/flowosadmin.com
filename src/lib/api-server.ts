@@ -3,6 +3,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
+import { apiBaseUrlFromEnv, buildApiUrl } from "@/lib/api-url";
 import { buildApiHeaders, safeResponseHeaders } from "@/lib/bff-headers";
 
 /**
@@ -12,22 +13,19 @@ import { buildApiHeaders, safeResponseHeaders } from "@/lib/bff-headers";
  * key is never included in the response returned to the browser.
  */
 
-function apiBaseUrl(): string {
-  const base = process.env.API_BASE_URL;
-  if (!base) {
-    throw new Error("API_BASE_URL is not set");
-  }
-  return base.replace(/\/$/, "");
-}
-
 export interface ApiProxyOptions {
   /** API path under `/api/v1`, e.g. "/knowledge/documents". */
   path: string;
   method?: string;
   /** Query string to append (without leading `?`). */
   search?: string;
-  /** JSON body for write methods. */
+  /** JSON body for write methods. Serialized with JSON.stringify. */
   body?: unknown;
+  /**
+   * Pre-encoded body forwarded untouched (multipart uploads, streams). Use
+   * this instead of `body` so the multipart boundary is preserved.
+   */
+  rawBody?: BodyInit;
   /** Extra request headers (e.g. forwarded content-type for uploads). */
   headers?: Record<string, string>;
 }
@@ -44,14 +42,16 @@ export async function apiProxy(
   // Fail closed: require a valid session with an access token.
   if (!session?.accessToken || session.error === "RefreshTokenError") {
     return NextResponse.json(
-      { message: "No autorizado." },
+      { message: "Unauthorized." },
       { status: 401 },
     );
   }
 
-  const url = `${apiBaseUrl()}/api/v1${options.path}${
-    options.search ? `?${options.search}` : ""
-  }`;
+  const url = buildApiUrl(
+    apiBaseUrlFromEnv(),
+    options.path,
+    options.search,
+  );
 
   const headers = buildApiHeaders({
     accessToken: session.accessToken,
@@ -59,24 +59,39 @@ export async function apiProxy(
     extra: options.headers,
   });
 
-  const hasBody = options.body !== undefined;
-  if (hasBody && !headers.has("Content-Type")) {
+  const hasJsonBody = options.body !== undefined;
+  const hasRawBody = options.rawBody !== undefined;
+
+  if (hasJsonBody && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
+
+  const outboundBody = hasRawBody
+    ? options.rawBody
+    : hasJsonBody
+      ? JSON.stringify(options.body)
+      : undefined;
 
   let upstream: Response;
   try {
     upstream = await fetch(url, {
       method: options.method ?? "GET",
       headers,
-      body: hasBody ? JSON.stringify(options.body) : undefined,
+      body: outboundBody,
+      // Node's fetch requires this when streaming a request body.
+      ...(hasRawBody ? { duplex: "half" } : {}),
       cache: "no-store",
-    });
-  } catch {
+    } as RequestInit);
+  } catch (cause) {
+    console.error(`[bff] Could not reach ${url}`, cause);
     return NextResponse.json(
-      { message: "No se pudo contactar el servicio." },
+      { message: "Could not reach the service." },
       { status: 502 },
     );
+  }
+
+  if (!upstream.ok) {
+    console.error(`[bff] ${upstream.status} from ${url}`);
   }
 
   // Pass through the body, stripping any sensitive headers.

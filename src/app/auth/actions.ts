@@ -1,10 +1,12 @@
 "use server";
 
 import { AuthError } from "next-auth";
+import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 import { signIn } from "@/auth";
-import { requestPasswordReset } from "@/lib/auth-api";
-import { loginSchema, recoverSchema } from "@/lib/auth-schemas";
+import { requestPasswordReset, resetPassword } from "@/lib/auth-api";
+import { loginSchema, recoverSchema, resetSchema } from "@/lib/auth-schemas";
 
 export interface LoginState {
   errors?: { email?: string[]; password?: string[] };
@@ -17,11 +19,17 @@ export interface RecoverState {
   ok?: boolean;
 }
 
-/**
- * Credentials login. On success, NextAuth redirects to `redirectTo` (which
- * throws a redirect we must let bubble). On failure, return a generic message
- * — never reveal whether the email or the password was wrong.
- */
+export interface ResetState {
+  errors?: {
+    email?: string[];
+    token?: string[];
+    password?: string[];
+    confirmPassword?: string[];
+  };
+  message?: string;
+  ok?: boolean;
+}
+
 export async function loginAction(
   _prev: LoginState,
   formData: FormData,
@@ -44,22 +52,34 @@ export async function loginAction(
       password: parsed.data.password,
       redirectTo: callbackUrl,
     });
+
   } catch (error) {
-    // Only AuthError means bad credentials. Any other throw (notably the
-    // redirect signIn raises on success) must bubble up untouched.
-    if (error instanceof AuthError) {
-      return { message: "Credenciales inválidas. Verifica e intenta de nuevo." };
+    // `signIn` throws a redirect on success — Next.js uses it for navigation,
+    // so it must propagate untouched.
+    if (isRedirectError(error)) {
+      throw error;
     }
+
+    if (error instanceof AuthError) {
+      // `ApiSignInError` puts the API's own message on `code`, so a 404 or an
+      // unreachable service reads differently from a wrong password.
+      const apiMessage =
+        "code" in error && typeof error.code === "string" ? error.code : "";
+
+      return {
+        message:
+          apiMessage && apiMessage !== "credentials"
+            ? apiMessage
+            : "Invalid credentials. Check them and try again.",
+      };
+    }
+
     throw error;
   }
 
   return {};
 }
 
-/**
- * Request a password reset. Always report success to the user regardless of
- * whether the email exists, to avoid account enumeration.
- */
 export async function recoverAction(
   _prev: RecoverState,
   formData: FormData,
@@ -74,6 +94,45 @@ export async function recoverAction(
     await requestPasswordReset(parsed.data.email);
   } catch {
     // Swallow — see note above; we don't leak existence or backend errors.
+  }
+
+  // Always send the user to the code screen, whether or not the address is
+  // registered. Branching here would reveal which emails have accounts.
+  redirect(`/auth/reset?email=${encodeURIComponent(parsed.data.email)}`);
+}
+
+/**
+ * Complete a password reset. Unlike `recoverAction` this one does surface
+ * failures: the user is acting on a link they already hold, so an expired
+ * token or a rejected password has to be visible or they cannot recover.
+ */
+export async function resetAction(
+  _prev: ResetState,
+  formData: FormData,
+): Promise<ResetState> {
+  const parsed = resetSchema.safeParse({
+    email: formData.get("email"),
+    token: formData.get("token"),
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    return { errors: parsed.error.flatten().fieldErrors };
+  }
+
+  try {
+    const result = await resetPassword({
+      email: parsed.data.email,
+      token: parsed.data.token,
+      newPassword: parsed.data.password,
+    });
+
+    if (!result.ok) {
+      return { message: result.message };
+    }
+  } catch {
+    return { message: "We could not reach the service. Try again." };
   }
 
   return { ok: true };

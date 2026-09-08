@@ -1,0 +1,447 @@
+### Flow OS Backend - API request collection
+### Use with the VS Code "REST Client" extension (humao.rest-client).
+### Base prefix: /api  |  Versioning: URI (v1)  ->  /api/v1/<route>
+###
+### 1. Fill @baseUrl, then run "Login" to get a token.
+### 2. Copy the access token from the response into @accessToken.
+### 3. Set @adminApiKey to your ADMIN_API_KEY for the admin-only knowledge/agent endpoints.
+
+@baseUrl = http://localhost:3000
+@apiV1 = {{baseUrl}}/api/v1
+
+### Fill these after logging in / from your environment
+@accessToken = EREPASTE_ACCESS_TOKEN_H
+@refreshToken = PASTE_REFRESH_TOKEN_HERE
+@adminApiKey = PASTE_ADMIN_API_KEY_HERE
+
+### Example ids used by :id routes
+@sessionId = 123e4567-e89b-12d3-a456-426614174000
+@documentId = 123e4567-e89b-12d3-a456-426614174000
+
+
+###############################################################################
+# HEALTH
+###############################################################################
+
+### Health check (no version prefix, no auth)
+GET {{baseUrl}}/api/health
+
+
+###############################################################################
+# AUTH  (/api/v1/auth)
+###############################################################################
+
+### Signup
+# @name signup
+POST {{apiV1}}/auth/signup
+Content-Type: application/json
+
+{
+  "email": "juanito@gmail.com",
+  "password": "password123",
+  "fullName": "Juan David",
+  "birth_date": "1990-01-01",
+  "timezone": "America/New_York",
+  "preferences": "{\"language\": \"en\", \"theme\": \"dark\"}"
+}
+
+### Login  (copy data.accessToken into @accessToken above)
+# @name login
+POST {{apiV1}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "prueba@gmail.com",
+  "password": "password12345"
+}
+
+### Login with Google (returns an OAuth URL)
+POST {{apiV1}}/auth/google
+
+### Validate token
+POST {{apiV1}}/auth/validate
+Authorization: Bearer {{accessToken}}
+
+### Refresh access token
+POST {{apiV1}}/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refresh_token": "{{refreshToken}}"
+}
+
+### Verify email
+POST {{apiV1}}/auth/verify-email
+Content-Type: application/json
+
+{
+  "token": "PASTE_VERIFICATION_TOKEN"
+}
+
+### Forgot password
+POST {{apiV1}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "prueba@gmail.com"
+}
+
+### Reset password
+POST {{apiV1}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "PASTE_RESET_TOKEN",
+  "password": "newPassword123"
+}
+
+### Logout
+POST {{apiV1}}/auth/logout
+Authorization: Bearer {{accessToken}}
+
+### Delete account
+DELETE {{apiV1}}/auth/delete-account
+Authorization: Bearer {{accessToken}}
+
+
+###############################################################################
+# USER  (/api/v1/user)
+###############################################################################
+
+### Get user profile
+GET {{apiV1}}/user/profile
+Authorization: Bearer {{accessToken}}
+
+### Update user profile
+PATCH {{apiV1}}/user/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "full_name": "John Doe",
+  "birth_date": "1990-01-01",
+  "timezone": "America/New_York",
+  "preferences": {
+    "voice": "woman",
+    "theme": "dark",
+    "daily_tao_frequency": "once_daily",
+    "flow_identity_map": {
+      "baseline_patterns": {
+        "mentally_busy": 7,
+        "easily_overwhelmed": 6,
+        "low_energy": 4,
+        "struggle_to_slow_down": 7
+      },
+      "yin_yang_tendencies": {
+        "push_vs_hold_back": 6,
+        "restless_vs_heavy": 5
+      },
+      "goals": ["calm", "focus"],
+      "disruption_patterns": ["overthinking", "pressure"],
+      "preferred_session_length_minutes": 5,
+      "preferred_tone": "soft"
+    }
+  }
+}
+
+
+###############################################################################
+# EMOTIONAL STATE  (/api/v1/emotional-state)
+###############################################################################
+
+### Create emotional state
+POST {{apiV1}}/emotional-state
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "mood_description": "Anxious and a bit scattered",
+  "mood_score": 4,
+  "problems_shared": "Too much on my plate at work",
+  "fears_insecurities": "Worried I will drop something important",
+  "daily_context": "Back-to-back meetings all morning",
+  "metadata": {
+    "mood": "anxious",
+    "arena": "work",
+    "goal_state": "calm",
+    "duration": 300
+  }
+}
+
+### Get latest emotional state
+GET {{apiV1}}/emotional-state
+Authorization: Bearer {{accessToken}}
+
+### Get emotional states by user (paginated)
+GET {{apiV1}}/emotional-state/user?page=1&limit=10
+Authorization: Bearer {{accessToken}}
+
+
+###############################################################################
+# MEDITATION SESSION  (/api/v1/meditation-session)
+###############################################################################
+
+### Create meditation session (also saves emotional state + generates audio)
+POST {{apiV1}}/meditation-session
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "mood_description": "Tense and overworked",
+  "mood_score": 4,
+  "problems_shared": "Deadline pressure",
+  "fears_insecurities": "Fear of falling behind",
+  "daily_context": "Long day at the desk",
+  "metadata": {
+    "mood": "tense",
+    "arena": "work",
+    "goal_state": "calm",
+    "duration": 300
+  }
+}
+
+### Complete a meditation session
+PUT {{apiV1}}/meditation-session/completed/{{sessionId}}
+Authorization: Bearer {{accessToken}}
+
+### Get user meditation history (optional ?filter=)
+GET {{apiV1}}/meditation-session/history
+Authorization: Bearer {{accessToken}}
+
+### Get user meditation statistics (optional ?days=30)
+GET {{apiV1}}/meditation-session/statistics?days=30
+Authorization: Bearer {{accessToken}}
+
+
+###############################################################################
+# SESSION FEEDBACK  (/api/v1/session-feedback)
+###############################################################################
+
+### Create session feedback
+POST {{apiV1}}/session-feedback
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "session_id": "{{sessionId}}",
+  "user_id": "123e4567-e89b-12d3-a456-426614174000",
+  "rating": 5,
+  "feedback_text": "Really helped me settle down.",
+  "was_helpful": true
+}
+
+
+###############################################################################
+# SUBSCRIPTION  (/api/v1/subscription)
+###############################################################################
+
+### Get all plans
+GET {{apiV1}}/subscription/plans
+Authorization: Bearer {{accessToken}}
+
+### Get current plan usage summary
+GET {{apiV1}}/subscription/usage-summary
+Authorization: Bearer {{accessToken}}
+
+
+###############################################################################
+# AI - TUTOR / COACH CHAT  (/api/v1/tutor)
+###############################################################################
+
+### Send a message to the coach (optional sessionId in body)
+POST {{apiV1}}/tutor/chat
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "message": "I feel anxious today",
+  "sessionId": "session-123"
+}
+
+### Get chat history (optional ?sessionId=)
+GET {{apiV1}}/tutor/chat/history?sessionId=session-123
+Authorization: Bearer {{accessToken}}
+
+### Get all chat sessions for the user
+GET {{apiV1}}/tutor/chat/sessions
+Authorization: Bearer {{accessToken}}
+
+### Delete / close a chat session (optional ?sessionId=)
+DELETE {{apiV1}}/tutor/chat/delete-session?sessionId=session-123
+Authorization: Bearer {{accessToken}}
+
+
+###############################################################################
+# AI - DAILY FLOW  (/api/v1/daily-flow)
+###############################################################################
+
+### Get the "Tao of the Day" message
+GET {{apiV1}}/daily-flow/daily-message
+Authorization: Bearer {{accessToken}}
+
+### Get Daily Tao popup state
+GET {{apiV1}}/daily-flow/popup-state
+Authorization: Bearer {{accessToken}}
+
+### Acknowledge that the Daily Tao popup was shown
+POST {{apiV1}}/daily-flow/popup-shown
+Authorization: Bearer {{accessToken}}
+
+
+###############################################################################
+# AGENT CONFIG (admin)  (/api/v1/agent)
+# Requires JWT AND the x-admin-api-key header.
+###############################################################################
+
+### List active agent prompts
+GET {{apiV1}}/agent/prompts
+Authorization: Bearer {{accessToken}}
+x-admin-api-key: {{adminApiKey}}
+
+### Upsert an agent prompt (creates a new active version)
+PUT {{apiV1}}/agent/prompts
+Authorization: Bearer {{accessToken}}
+x-admin-api-key: {{adminApiKey}}
+Content-Type: application/json
+
+{
+  "key": "coach_chat_system",
+  "content": "You are the Tao Flow Coach. Calm, grounded, and brief.",
+  "description": "Coach chat system prompt"
+}
+
+### List agent settings
+GET {{apiV1}}/agent/settings
+Authorization: Bearer {{accessToken}}
+x-admin-api-key: {{adminApiKey}}
+
+### Upsert an agent setting (value is JSON)
+PUT {{apiV1}}/agent/settings
+Authorization: Bearer {{accessToken}}
+x-admin-api-key: {{adminApiKey}}
+Content-Type: application/json
+
+{
+  "key": "knowledge_top_k",
+  "value": 6,
+  "description": "Number of knowledge snippets to retrieve"
+}
+
+
+###############################################################################
+# KNOWLEDGE (admin RAG)  (/api/v1/knowledge)
+# Requires JWT AND the x-admin-api-key header.
+###############################################################################
+
+### Upload a PDF document (multipart/form-data)
+### REST Client resolves the file path relative to this .http file.
+POST {{apiV1}}/knowledge/documents
+Authorization: Bearer {{accessToken}}
+x-admin-api-key: {{adminApiKey}}
+Content-Type: multipart/form-data; boundary=----FlowOsBoundary
+
+------FlowOsBoundary
+Content-Disposition: form-data; name="title"
+
+Tao of Flow
+------FlowOsBoundary
+Content-Disposition: form-data; name="description"
+
+Founder book, first edition
+------FlowOsBoundary
+Content-Disposition: form-data; name="tags"
+
+book,core
+------FlowOsBoundary
+Content-Disposition: form-data; name="file"; filename="tao-of-flow.pdf"
+Content-Type: application/pdf
+
+< ./tao-of-flow.pdf
+------FlowOsBoundary--
+
+### List documents (paginated, filterable)
+GET {{apiV1}}/knowledge/documents?page=1&limit=20&status=indexed&search=flow
+Authorization: Bearer {{accessToken}}
+x-admin-api-key: {{adminApiKey}}
+
+### Get a single document (with signed download URL)
+GET {{apiV1}}/knowledge/documents/{{documentId}}
+Authorization: Bearer {{accessToken}}
+x-admin-api-key: {{adminApiKey}}
+
+### Delete a document (storage + row + chunks)
+DELETE {{apiV1}}/knowledge/documents/{{documentId}}
+Authorization: Bearer {{accessToken}}
+x-admin-api-key: {{adminApiKey}}
+
+### Reindex a document from its stored PDF
+POST {{apiV1}}/knowledge/documents/{{documentId}}/reindex
+Authorization: Bearer {{accessToken}}
+x-admin-api-key: {{adminApiKey}}
+
+### Search indexed knowledge (debug/inspection)
+GET {{apiV1}}/knowledge/search?query=how do I settle the body&limit=5
+Authorization: Bearer {{accessToken}}
+x-admin-api-key: {{adminApiKey}}
+
+
+###############################################################################
+# STRIPE  (/api/v1/stripe)
+###############################################################################
+
+### Create a checkout session for a subscription
+POST {{apiV1}}/stripe/checkout-session
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "priceId": "price_123",
+  "successUrl": "https://your-app.com/success",
+  "cancelUrl": "https://your-app.com/cancel"
+}
+
+### Get current subscription status
+GET {{apiV1}}/stripe/subscription
+Authorization: Bearer {{accessToken}}
+
+### Cancel subscription at period end
+POST {{apiV1}}/stripe/cancel-subscription
+Authorization: Bearer {{accessToken}}
+
+### Stripe webhook (signature-verified; normally called by Stripe, not manually)
+POST {{apiV1}}/stripe/webhook
+Content-Type: application/json
+stripe-signature: t=0,v1=PLACEHOLDER
+
+{
+  "id": "evt_test",
+  "type": "checkout.session.completed"
+}
+
+
+###############################################################################
+# WEBHOOKS  (/api/v1/webhook, /api/v1/payments)
+# Normally called by external providers, included for completeness.
+###############################################################################
+
+### Stripe webhook (alternate route)
+POST {{apiV1}}/webhook/stripe
+Content-Type: application/json
+stripe-signature: t=0,v1=PLACEHOLDER
+
+{
+  "id": "evt_test",
+  "type": "checkout.session.completed"
+}
+
+### RevenueCat webhook
+POST {{apiV1}}/payments/webhook
+Content-Type: application/json
+Authorization: Bearer PASTE_REVENUECAT_WEBHOOK_SECRET
+
+{
+  "event": {
+    "type": "INITIAL_PURCHASE",
+    "app_user_id": "123e4567-e89b-12d3-a456-426614174000"
+  }
+}

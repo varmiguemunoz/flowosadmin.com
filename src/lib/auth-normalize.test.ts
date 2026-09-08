@@ -10,6 +10,86 @@ import {
 
 const NOW = 1_700_000_000_000;
 
+test("normalizeAuthPayload unwraps the API's AppResponse envelope", () => {
+  // Exactly what POST /api/v1/auth/login returns.
+  const result = normalizeAuthPayload(
+    {
+      status: 201,
+      message: "User logged in successfully",
+      data: {
+        access_token: "acc",
+        refresh_token: "ref",
+        user: {
+          id: "u1",
+          email: "admin@taoflow.com",
+          full_name: "Miguel",
+        },
+      },
+    },
+    NOW,
+  );
+
+  assert.ok(result, "envelope payload must normalize");
+  assert.equal(result.accessToken, "acc");
+  assert.equal(result.refreshToken, "ref");
+  assert.equal(result.user.id, "u1");
+  assert.equal(result.user.email, "admin@taoflow.com");
+  assert.equal(result.user.name, "Miguel");
+});
+
+test("normalizeAuthPayload maps user_id from the profile row", () => {
+  const result = normalizeAuthPayload(
+    {
+      data: {
+        access_token: "acc",
+        refresh_token: "ref",
+        user: { user_id: "profile-uuid", email: "a@b.com" },
+      },
+    },
+    NOW,
+  );
+
+  assert.ok(result);
+  assert.equal(result.user.id, "profile-uuid");
+});
+
+test("normalizeAuthPayload still accepts an already-unwrapped payload", () => {
+  const result = normalizeAuthPayload(
+    {
+      access_token: "acc",
+      refresh_token: "ref",
+      user: { id: "u1", email: "a@b.com" },
+    },
+    NOW,
+  );
+
+  assert.ok(result);
+  assert.equal(result.accessToken, "acc");
+});
+
+test("normalizeAuthPayload ignores a non-object data field", () => {
+  const result = normalizeAuthPayload(
+    {
+      data: "not an object",
+      access_token: "acc",
+      user: { id: "u1", email: "a@b.com" },
+    },
+    NOW,
+  );
+
+  assert.ok(result, "must fall back to the top level when data is not an object");
+  assert.equal(result.accessToken, "acc");
+});
+
+test("normalizeAuthPayload returns null for an envelope with no tokens", () => {
+  const result = normalizeAuthPayload(
+    { status: 401, message: "Invalid credentials", data: null },
+    NOW,
+  );
+
+  assert.equal(result, null);
+});
+
 test("normalizeAuthPayload maps camelCase login response", () => {
   const result = normalizeAuthPayload(
     {

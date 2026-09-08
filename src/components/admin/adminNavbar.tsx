@@ -1,25 +1,33 @@
 "use client";
 
+import { useState } from "react";
+import { signOut } from "next-auth/react";
 import { FiLogOut } from "react-icons/fi";
+
+import { displayName, initialOf, type DisplayUser } from "@/lib/user-display";
 
 /**
  * Admin top bar — persists across the whole /admin area.
  *
- * DESIGN-ONLY for now: the user identity is a placeholder and the logout
- * button has no handler yet. Wire `user` from the session and `onLogout` to
- * NextAuth `signOut` later.
+ * The user is resolved server-side in the layout and passed in, so the name is
+ * correct on first paint rather than flashing a placeholder while a client
+ * session request resolves.
  */
-export interface AdminUser {
-  name: string;
-}
+export function AdminNavbar({ user }: { user?: DisplayUser | null }) {
+  const [signingOut, setSigningOut] = useState(false);
+  const name = displayName(user);
 
-const PLACEHOLDER_USER: AdminUser = { name: "Ada Lovelace" };
+  async function handleSignOut() {
+    setSigningOut(true);
+    try {
+      await signOut({ redirectTo: "/auth/login" });
+    } catch {
+      // A failed sign-out leaves the session intact; re-enable the button so
+      // the operator can retry rather than being stuck on a dead control.
+      setSigningOut(false);
+    }
+  }
 
-function initialOf(name: string): string {
-  return name.trim().charAt(0).toUpperCase() || "?";
-}
-
-export function AdminNavbar({ user = PLACEHOLDER_USER }: { user?: AdminUser }) {
   return (
     <header className="sticky top-0 z-10 border-b border-line bg-canvas/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
@@ -36,10 +44,10 @@ export function AdminNavbar({ user = PLACEHOLDER_USER }: { user?: AdminUser }) {
               aria-hidden="true"
               className="grid size-8 place-items-center rounded-full bg-signal text-sm font-semibold text-on-signal"
             >
-              {initialOf(user.name)}
+              {initialOf(name)}
             </span>
-            <span className="hidden text-sm text-ink sm:inline">
-              {user.name}
+            <span className="hidden text-sm text-ink sm:inline" title={user?.email ?? undefined}>
+              {name}
             </span>
           </div>
 
@@ -48,10 +56,14 @@ export function AdminNavbar({ user = PLACEHOLDER_USER }: { user?: AdminUser }) {
           <button
             type="button"
             aria-label="Log out"
-            className="inline-flex h-9 items-center gap-2 rounded-[var(--radius-control)] px-2.5 text-sm text-ink-muted transition-colors hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas sm:px-3"
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="inline-flex h-9 items-center gap-2 rounded-[var(--radius-control)] px-2.5 text-sm text-ink-muted transition-colors hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:cursor-not-allowed disabled:opacity-60 sm:px-3"
           >
             <FiLogOut className="size-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Log out</span>
+            <span className="hidden sm:inline">
+              {signingOut ? "Logging out…" : "Log out"}
+            </span>
           </button>
         </div>
       </div>

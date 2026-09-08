@@ -33,10 +33,9 @@ function SignalRail() {
         </div>
 
         <div className="hidden lg:block">
-          <p className="microlabel mb-2">Consola restringida</p>
+          <p className="microlabel mb-2">Restricted console</p>
           <p className="max-w-[24ch] text-sm leading-relaxed text-ink-muted">
-            Panel de administración de TaoFlow. Acceso limitado al equipo
-            autorizado.
+            TaoFlow admin console. Access limited to the authorized team.
           </p>
         </div>
       </div>
