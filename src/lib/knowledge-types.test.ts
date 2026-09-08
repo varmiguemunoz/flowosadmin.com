@@ -7,6 +7,7 @@ import {
   toDocumentItem,
   validateUploadFile,
   MAX_UPLOAD_BYTES,
+  MAX_UPLOAD_MB,
   type ApiKnowledgeDocument,
 } from "./knowledge-types.ts";
 
@@ -143,13 +144,15 @@ test("validateUploadFile rejects non-PDF files", () => {
 });
 
 test("validateUploadFile rejects files over the size limit", () => {
+  // Derived from the constant, not restated. Hardcoding the number here is
+  // what let the message and the limit disagree the last time it changed.
   assert.equal(
     validateUploadFile({
       name: "big.pdf",
       size: MAX_UPLOAD_BYTES + 1,
       type: "application/pdf",
     }),
-    "File exceeds the 25 MB limit.",
+    `File exceeds the ${MAX_UPLOAD_MB} MB limit.`,
   );
 });
 

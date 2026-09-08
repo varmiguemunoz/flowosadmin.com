@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { apiBaseUrlFromEnv, buildApiUrl } from "@/lib/api-url";
 import { buildApiHeaders } from "@/lib/bff-headers";
-import { contentDispositionAttachment } from "@/lib/content-disposition";
+import { withDownloadParam } from "@/lib/download-url";
 import type {
   ApiEnvelope,
   ApiKnowledgeDocumentDetail,
@@ -12,17 +12,18 @@ import type {
 /**
  * Download a knowledge PDF.
  *
- * The API has no download endpoint. `GET /knowledge/documents/:id` attaches a
- * short-lived Supabase signed URL, so this route resolves that first and then
- * streams the object back.
+ * The API has no download endpoint; `GET /knowledge/documents/:id` attaches a
+ * short-lived Supabase signed URL, so this route resolves that and redirects.
  *
- * Two reasons it does not go through `apiProxy`: that helper reads non-JSON
- * responses with `.text()`, which would corrupt a PDF, and the signed URL would
- * otherwise reach the browser. The backend creates it without Supabase's
- * `download` flag, so a browser opening it directly would render the PDF inline
- * instead of saving it. Streaming here lets us set our own
- * `Content-Disposition` and keep the original filename, without touching the
- * API.
+ * It must NOT stream the file back. Vercel caps a function's *response* body at
+ * 4.5 MB just as it caps the request, so proxying the bytes would fail on
+ * exactly the large documents this exists to serve. Redirecting sends the
+ * browser straight to storage, which has no such limit.
+ *
+ * Supabase's `download` query parameter is what turns the response into an
+ * attachment rather than an inline render — it is precisely what the SDK's
+ * `{ download }` option appends, so setting it here is equivalent and needs no
+ * backend change.
  */
 export async function GET(
   _request: Request,
@@ -85,48 +86,19 @@ export async function GET(
     );
   }
 
-  let fileResponse: Response;
-  try {
-    // The URL is already signed; sending our own credentials would be wrong.
-    fileResponse = await fetch(downloadUrl, { cache: "no-store" });
-  } catch (cause) {
-    console.error(`[bff] Could not fetch stored file for ${id}`, cause);
-    return NextResponse.json(
-      { message: "Could not reach the file storage." },
-      { status: 502 },
-    );
-  }
-
-  if (!fileResponse.ok || !fileResponse.body) {
-    console.error(`[bff] Storage returned ${fileResponse.status} for ${id}`);
-    return NextResponse.json(
-      { message: "The stored file could not be read." },
-      { status: 502 },
-    );
-  }
-
   const filename = document?.original_filename?.trim() || `${id}.pdf`;
-  const outboundHeaders = new Headers({
-    "Content-Type": fileResponse.headers.get("content-type") ?? "application/pdf",
-    "Content-Disposition": contentDispositionAttachment(filename),
-    "Cache-Control": "no-store",
-  });
 
-  const contentLength = fileResponse.headers.get("content-length");
-  if (contentLength) {
-    outboundHeaders.set("Content-Length", contentLength);
-  }
-
-  return new NextResponse(fileResponse.body, {
-    status: 200,
-    headers: outboundHeaders,
+  return NextResponse.redirect(withDownloadParam(downloadUrl, filename), {
+    status: 302,
+    // The URL is signed and time-limited; never let it sit in a shared cache.
+    headers: { "Cache-Control": "no-store" },
   });
 }
 
 /**
  * The URL comes from our own API rather than from user input, but this route
- * would otherwise fetch whatever that field contained — so constrain it to
- * HTTPS rather than trusting the value outright.
+ * would otherwise redirect to whatever that field contained — so constrain it
+ * to HTTPS rather than trusting the value outright.
  */
 function isHttpsUrl(value: string): boolean {
   try {

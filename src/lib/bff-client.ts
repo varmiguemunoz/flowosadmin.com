@@ -8,12 +8,15 @@
  */
 
 export class BffError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-  ) {
+  // Declared and assigned explicitly rather than as a constructor parameter
+  // property: `node --experimental-strip-types` runs the test suite and cannot
+  // compile parameter properties, which would make this module untestable.
+  status: number;
+
+  constructor(status: number, message: string) {
     super(message);
     this.name = "BffError";
+    this.status = status;
   }
 }
 
@@ -53,5 +56,20 @@ export async function bffFetch<T>(
   if (res.status === 204) {
     return undefined as T;
   }
+
+  // A 200 carrying HTML means something upstream answered instead of our route
+  // — a redirect that `fetch` followed to a page, or a dev error overlay.
+  // Parsing it would throw "Unexpected token '<'", which tells nobody anything;
+  // `res.url` names the page we actually landed on.
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    throw new BffError(
+      res.status,
+      res.redirected
+        ? `Request was redirected to ${res.url} instead of returning data. You may need to sign in again.`
+        : `Expected JSON from the server but received ${contentType || "an unknown content type"}.`,
+    );
+  }
+
   return (await res.json()) as T;
 }

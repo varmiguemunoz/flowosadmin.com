@@ -34,7 +34,9 @@ export function KnowledgeSection() {
       <div className="flex items-baseline justify-between border-b border-line pb-3">
         <h2 className="text-sm font-medium text-ink">Documents</h2>
         <span className="microlabel tabular">
-          {documentsQuery.isPending
+          {/* isFetching, not isPending: a refetch of already-cached data leaves
+              isPending false, so a retry would otherwise show no sign of life. */}
+          {documentsQuery.isFetching
             ? "Loading"
             : `${documentsQuery.data?.total ?? documents.length} total`}
         </span>
@@ -60,9 +62,10 @@ export function KnowledgeSection() {
           <button
             type="button"
             onClick={() => void documentsQuery.refetch()}
-            className="h-8 rounded-[var(--radius-control)] border border-line-strong px-3 text-xs text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70"
+            disabled={documentsQuery.isFetching}
+            className="h-8 rounded-[var(--radius-control)] border border-line-strong px-3 text-xs text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/70 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Try again
+            {documentsQuery.isFetching ? "Retrying…" : "Try again"}
           </button>
         </div>
       ) : (

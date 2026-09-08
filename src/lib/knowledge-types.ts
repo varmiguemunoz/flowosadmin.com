@@ -47,6 +47,14 @@ export interface ApiKnowledgeDocumentDetail extends ApiKnowledgeDocument {
   download_url?: string;
 }
 
+/** Credential for uploading a file straight to storage, bypassing our server. */
+export interface UploadTicket {
+  documentId: string;
+  signedUrl: string;
+  storagePath: string;
+  token: string;
+}
+
 /** What a document card renders. Presentation-ready: no parsing left to do. */
 export interface DocumentItem {
   id: string;
@@ -63,8 +71,12 @@ export interface DocumentItem {
 const KB = 1024;
 const MB = KB * KB;
 
-/** Upload constraints, matched to what the API accepts. */
-export const MAX_UPLOAD_BYTES = 25 * MB;
+/**
+ * Upload constraints, matched to the API's `KNOWLEDGE_MAX_FILE_SIZE_MB`.
+ * Keep the two in step; the API is the one that actually enforces it.
+ */
+export const MAX_UPLOAD_MB = 50;
+export const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * MB;
 export const ACCEPTED_UPLOAD_TYPE = "application/pdf";
 
 export interface FileValidationInput {
@@ -86,7 +98,9 @@ export function validateUploadFile(file: FileValidationInput): string | null {
     return "Only PDF files are allowed.";
   }
   if (file.size > MAX_UPLOAD_BYTES) {
-    return "File exceeds the 25 MB limit.";
+    // Derived, not hardcoded — the message and the constant drifted apart once
+    // already when the limit changed.
+    return `File exceeds the ${MAX_UPLOAD_MB} MB limit.`;
   }
   if (file.size === 0) {
     return "File is empty.";
